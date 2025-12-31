@@ -9,11 +9,15 @@ const specs = {
     description: 'API Documentation for Vietsignschool',
   },
   servers: [
-    {
-      url: 'http://localhost:5000',
-      description: 'Development server',
-    },
-  ],
+      {
+        url: "https://vietsignschoolbe-production.up.railway.app",
+        description: "Production Server",
+      },
+      {
+        url: "http://localhost:5000",
+        description: "Development Server",
+      },
+    ],
   components: {
     securitySchemes: {
       bearerAuth: {
