@@ -41,7 +41,7 @@ async function createOrganization(req, res) {
         const {
             parent_id,
             name,
-            type,
+            type, // 'EDU_SYSTEM','CENTER','SCHOOL','DEPARTMENT','FACILITY
             address,
             city,
             ward,
