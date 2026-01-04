@@ -1,25 +1,64 @@
 const db = require('../db');
 
-async function orgRoleMiddleware(req, res, next) {
+const  orgScopeMiddleware = (allowRoles =[] ) => {
+    return async (req, res, next) => {
     try {
         const userId = req.user.user_id;
-        const orgId = req.params.id || req.body.organization_id;
+        const orgId = req.params.organization_id || req.body.organization_id || req.query.organization_id;
+
         if (!orgId) {
-            return res.status(400).json({ message: 'Organization ID is required.' });
+            return res.status(400).json({ error: 'Organization ID is required' });
         }
-        const [rows] = await db.query(
-            `SELECT role FROM user_organization 
-             WHERE user_id = ? AND organization_id = ? AND status = 'ACTIVE' LIMIT 1`,
+
+        // Lấy tất cả role của user
+        const [roles] = await db.query(
+            `
+            SELECT role_in_org, organization_id
+            FROM organization_manager
+            WHERE user_id = ?
+            `,
+            [userId]
+        );
+
+        // Nếu có SUPER_ADMIN ở BẤT KỲ org nào → cho qua
+        const isSuperAdmin = roles.some(
+            r => r.role_in_org === 'SUPER_ADMIN'
+        );
+
+        if (isSuperAdmin) {
+            req.orgRole = 'SUPER_ADMIN';
+            req.organization_id = orgId;
+            return next();
+        }
+
+        // Kiểm tra role trong org cụ thể
+        const [row] = await db.query(
+            `
+            SELECT role_in_org
+            FROM organization_manager
+            WHERE user_id = ? AND organization_id = ?
+            `,
             [userId, orgId]
         );
-        if (rows.length === 0) {
-            return res.status(403).json({ message: 'Access denied. You are not a member of this organization.' });
+
+        if (row.length === 0) {
+            return res.status(403).json({ error: 'Access denied: User is not part of the organization' });
         }
-        req.userRole = rows[0].role;
+
+        const userRole = row[0].role_in_org;
+        if(!allowRoles.includes(userRole)){
+            return res.status(403).json({ error: 'Access denied: Insufficient role permissions' });
+        }
+
+        req.orgRole = userRole;
+        req.organization_id = orgId;
+
         next();
     } catch (error) {
-        console.error('Error in orgRoleMiddleware:', error);
-        return res.status(500).json({ message: 'Internal server error', error: error.message });
+        console.error('Error in orgScopeMiddleware:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 }
-module.exports = { orgRoleMiddleware };
+}
+
+module.exports = orgScopeMiddleware;

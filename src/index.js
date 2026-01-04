@@ -4,6 +4,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const organizationRoutes = require("./routes/organization.routes");
+const organizationManagerRoutes = require("./routes/organizationManager.routes");
 const { authRequired } = require("./middleware/auth.middleware");
 const { specs, swaggerUi } = require("./swagger/index");
 
@@ -21,6 +22,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);  
 app.use("/organizations", organizationRoutes);
+app.use("/organization-managers", organizationManagerRoutes);
 
 //router login
 app.get("/me",authRequired, (req, res) => {

@@ -421,6 +421,80 @@ const swaggerDocs = {
         }
       }
     }
+  },
+
+  '/organization-managers':{
+    post:{
+      tags: ['Organization Manager Assignment'],
+      summary: 'Assign organization management role to a user',
+      security: [{ bearerAuth: [] }],
+      description: 'Is_primary: Nếu true thì user này sẽ là quản lý chính của tổ chức, các quản lý khác sẽ bị hạ xuống không phải quản lý chính nữa.',
+      requestBody:{
+        required: true,
+        content:{
+          'application/json':{
+            schema:{
+              type: 'object',
+              required: ['organization_id', 'user_id', 'role_in_org'],
+              properties:{
+                organization_id: { type: 'string', example: '123' },
+                user_id: { type: 'string', example: '456' },
+                role_in_org: { type: 'string', example: 'SUPER_ADMIN', enum: ['SUPER_ADMIN','CENTER_ADMIN','SCHOOL_ADMIN','TEACHER','STUDENT'] },
+                is_primary: { type: 'boolean', example: true }
+              }
+            }
+          }
+        }
+      },
+      responses:{
+        201:{
+          description: 'Role assigned successfully'
+        },
+        400:{
+          description: 'Missing required fields'
+        },
+        409:{
+          description: 'Conflict: User already has a role in this organization'
+        },
+        500:{
+          description: 'Internal server error'
+        }
+      }
+    },
+    delete:{
+      tags: ['Organization Manager Assignment'],
+      summary: 'Revoke organization management role from a user',
+      security: [{ bearerAuth: [] }],
+      requestBody:{
+        required: true,
+        content:{
+          'application/json':{
+            schema:{
+              type: 'object',
+              required: ['organization_id', 'user_id'],
+              properties:{
+                organization_id: { type: 'string', example: '12' },
+                user_id: { type: 'string', example: '34' }
+              }
+            }
+          }
+        }
+      },
+      responses:{
+        200:{
+          description: 'Role revoked successfully'
+        },
+        400:{
+          description: 'Missing required fields'
+        },
+        404:{
+          description: 'Not Found: No such role assignment'
+        },
+        500:{
+          description: 'Internal server error'
+        }
+      }
+    }
   }
 };
 
