@@ -27,7 +27,7 @@ function signToken(payload){
         //3. Hash password
         // const hashedPassword = await bcrypt.hash(password, 10);
 
-        const roleCode = code || 'STUDENT';
+        const roleCode = code || 'USER';
         const [roleRows] = await pool.query(
             'SELECT code FROM role WHERE code = ? LIMIT 1',
             [roleCode]
