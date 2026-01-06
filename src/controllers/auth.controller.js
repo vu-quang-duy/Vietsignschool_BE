@@ -25,9 +25,7 @@ function signToken(payload){
             return res.status(409).json({message: "User already exists"});
         }
         //3. Hash password
-        // const hashedPassword = await bcrypt.hash(password, 10);
-
-        const roleCode = code || 'USER';
+        // const hashedPassword = await bcrypt.hash(pas';
         const [roleRows] = await pool.query(
             'SELECT code FROM role WHERE code = ? LIMIT 1',
             [roleCode]

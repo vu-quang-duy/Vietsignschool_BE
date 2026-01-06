@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use("/auth", authRoutes);
-app.use("/user", userRoutes);  
+app.use("/users", userRoutes);  
 app.use("/organizations", organizationRoutes);
 app.use("/organization-managers", organizationManagerRoutes);
 
