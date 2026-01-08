@@ -11,7 +11,7 @@ function signToken(payload){
 // POST /auth/register
  async function register(req, res) {
     try {
-        const {name , email, password, phone_number} = req.body;
+        const {name , email, password, phone_number, code} = req.body;
         //1. Validate input
         if(!name || !email || !password){
             return res.status(400).json({message: "Name, email, and password are required"});
