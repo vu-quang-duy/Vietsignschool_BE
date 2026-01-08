@@ -17,7 +17,15 @@ const {
     deleteUser,
     restoreUser,
     resetUserPassword,
-    changeUserRole
+    changeUserRole,
+
+    // Account approval functions
+    getPendingUsers,
+    getApprovalStats,
+    approveUser,
+    rejectUser,
+    bulkApproveUsers,
+    getUserApprovalHistory
 } = require("../controllers/user.controller");
 const { authRequired } = require("../middleware/auth.middleware");
 const { hasPermission } = require("../middleware/permission.middleware");
@@ -78,5 +86,25 @@ router.put("/:userId/reset-password", authRequired, hasPermission('USER_UPDATE')
 
 // PUT /user/:userId/change-role - Thay đổi role của user (Admin only)
 router.put("/:userId/change-role", authRequired, hasPermission('USER_ASSIGN_ROLE'), changeUserRole);
+
+// ==================== ACCOUNT APPROVAL ROUTES ====================
+
+// GET /users/pending - Danh sách tài khoản chờ phê duyệt (Admin only)
+router.get("/pending", authRequired, hasPermission('USER_VIEW'), getPendingUsers);
+
+// GET /users/approval-stats - Thống kê tài khoản theo trạng thái (Admin only)
+router.get("/approval-stats", authRequired, hasPermission('USER_VIEW'), getApprovalStats);
+
+// POST /users/bulk-approve - Phê duyệt nhiều tài khoản (Admin only)
+router.post("/bulk-approve", authRequired, hasPermission('USER_UPDATE'), bulkApproveUsers);
+
+// PUT /users/:userId/approve - Phê duyệt tài khoản (Admin only)
+router.put("/:userId/approve", authRequired, hasPermission('USER_UPDATE'), approveUser);
+
+// PUT /users/:userId/reject - Từ chối tài khoản (Admin only)
+router.put("/:userId/reject", authRequired, hasPermission('USER_UPDATE'), rejectUser);
+
+// GET /users/:userId/approval-history - Lịch sử phê duyệt (Admin only)
+router.get("/:userId/approval-history", authRequired, hasPermission('USER_VIEW'), getUserApprovalHistory);
 
 module.exports = router;

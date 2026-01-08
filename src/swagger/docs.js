@@ -1460,6 +1460,894 @@ const swaggerDocs = {
         500: { description: 'Lỗi server' }
       }
     }
+  },
+
+  // User Management APIs (Admin)
+  '/users/all': {
+    get: {
+      tags: ['User Management (Admin)'],
+      summary: 'Get all users (Admin only)',
+      description: 'Lấy danh sách tất cả người dùng với phân trang, tìm kiếm và lọc (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'page',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'number',
+            example: 1,
+            default: 1
+          },
+          description: 'Số trang hiện tại'
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'number',
+            example: 20,
+            default: 20
+          },
+          description: 'Số lượng user mỗi trang'
+        },
+        {
+          name: 'search',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'string',
+            example: 'nguyen'
+          },
+          description: 'Tìm kiếm theo tên hoặc email'
+        },
+        {
+          name: 'role',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'string',
+            enum: ['ADMIN', 'TEACHER', 'STUDENT'],
+            example: 'TEACHER'
+          },
+          description: 'Lọc theo role'
+        },
+        {
+          name: 'status',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'string',
+            enum: ['active', 'deleted'],
+            example: 'active'
+          },
+          description: 'Lọc theo trạng thái (active = chưa xóa, deleted = đã xóa)'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  total: { type: 'number', example: 150 },
+                  page: { type: 'number', example: 1 },
+                  limit: { type: 'number', example: 20 },
+                  totalPages: { type: 'number', example: 8 },
+                  users: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        user_id: { type: 'number', example: 1 },
+                        name: { type: 'string', example: 'Nguyễn Văn A' },
+                        email: { type: 'string', example: 'nguyenvana@example.com' },
+                        phone_number: { type: 'string', example: '0123456789' },
+                        role: { type: 'string', example: 'TEACHER' },
+                        role_name: { type: 'string', example: 'Giáo viên' },
+                        is_deleted: { type: 'number', example: 0 },
+                        created_date: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_VIEW' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/create': {
+    post: {
+      tags: ['User Management (Admin)'],
+      summary: 'Create new user (Admin only)',
+      description: 'Tạo người dùng mới (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['name', 'email', 'password'],
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'Nguyễn Văn B',
+                  description: 'Tên người dùng'
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'nguyenvanb@example.com',
+                  description: 'Email (phải unique)'
+                },
+                password: {
+                  type: 'string',
+                  minLength: 6,
+                  example: 'password123',
+                  description: 'Mật khẩu (tối thiểu 6 ký tự)'
+                },
+                phone_number: {
+                  type: 'string',
+                  example: '0987654321',
+                  description: 'Số điện thoại'
+                },
+                gender: {
+                  type: 'string',
+                  example: 'Male',
+                  description: 'Giới tính'
+                },
+                address: {
+                  type: 'string',
+                  example: '456 Đường XYZ, Quận 2, TP.HCM',
+                  description: 'Địa chỉ'
+                },
+                birth_day: {
+                  type: 'string',
+                  format: 'date',
+                  example: '1995-05-15',
+                  description: 'Ngày sinh (YYYY-MM-DD)'
+                },
+                role: {
+                  type: 'string',
+                  enum: ['ADMIN', 'TEACHER', 'STUDENT'],
+                  example: 'STUDENT',
+                  default: 'STUDENT',
+                  description: 'Role của người dùng'
+                },
+                school_id: {
+                  type: 'number',
+                  example: 1,
+                  description: 'ID trường học'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        201: {
+          description: 'Tạo người dùng thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Tạo người dùng thành công' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      user_id: { type: 'number' },
+                      name: { type: 'string' },
+                      email: { type: 'string' },
+                      role: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu thông tin bắt buộc hoặc email không hợp lệ/đã tồn tại' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_CREATE' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}': {
+    get: {
+      tags: ['User Management (Admin)'],
+      summary: 'Get user by ID (Admin only)',
+      description: 'Lấy thông tin chi tiết người dùng theo ID (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần xem'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  user_id: { type: 'number', example: 1 },
+                  name: { type: 'string', example: 'Nguyễn Văn A' },
+                  email: { type: 'string', example: 'nguyenvana@example.com' },
+                  phone_number: { type: 'string', example: '0123456789' },
+                  gender: { type: 'string', example: 'Male' },
+                  address: { type: 'string', example: '123 Đường ABC' },
+                  birth_day: { type: 'string', format: 'date' },
+                  role: { type: 'string', example: 'TEACHER' },
+                  role_name: { type: 'string', example: 'Giáo viên' },
+                  school_id: { type: 'number', example: 1 },
+                  avatar_location: { type: 'string' },
+                  is_deleted: { type: 'number', example: 0 },
+                  is_oauth2: { type: 'number', example: 0 },
+                  created_by: { type: 'string' },
+                  created_date: { type: 'string', format: 'date-time' },
+                  modified_by: { type: 'string' },
+                  modified_date: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_VIEW' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    },
+    put: {
+      tags: ['User Management (Admin)'],
+      summary: 'Update user information (Admin only)',
+      description: 'Cập nhật thông tin người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần cập nhật'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'Nguyễn Văn C',
+                  description: 'Tên người dùng'
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'nguyenvanc@example.com',
+                  description: 'Email mới (phải unique)'
+                },
+                phone_number: {
+                  type: 'string',
+                  example: '0909123456',
+                  description: 'Số điện thoại'
+                },
+                gender: {
+                  type: 'string',
+                  example: 'Female',
+                  description: 'Giới tính'
+                },
+                address: {
+                  type: 'string',
+                  example: '789 Đường DEF',
+                  description: 'Địa chỉ'
+                },
+                birth_day: {
+                  type: 'string',
+                  format: 'date',
+                  example: '1990-03-20',
+                  description: 'Ngày sinh'
+                },
+                avatar_location: {
+                  type: 'string',
+                  example: '/uploads/avatars/avatar.jpg',
+                  description: 'Đường dẫn avatar'
+                },
+                school_id: {
+                  type: 'number',
+                  example: 2,
+                  description: 'ID trường học'
+                }
+              },
+              description: 'Tất cả các trường đều optional, chỉ cần gửi những trường cần cập nhật'
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Cập nhật thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Cập nhật người dùng thành công' },
+                  user_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Email không hợp lệ hoặc đã tồn tại' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    },
+    delete: {
+      tags: ['User Management (Admin)'],
+      summary: 'Delete user (Admin only)',
+      description: 'Xóa người dùng - soft delete (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần xóa'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Xóa thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Xóa người dùng thành công' },
+                  user_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_DELETE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/restore': {
+    put: {
+      tags: ['User Management (Admin)'],
+      summary: 'Restore deleted user (Admin only)',
+      description: 'Khôi phục người dùng đã xóa (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần khôi phục'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Khôi phục thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Khôi phục người dùng thành công' },
+                  user_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng đã xóa' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/reset-password': {
+    put: {
+      tags: ['User Management (Admin)'],
+      summary: 'Reset user password (Admin only)',
+      description: 'Admin reset mật khẩu cho người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần reset mật khẩu'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['newPassword'],
+              properties: {
+                newPassword: {
+                  type: 'string',
+                  minLength: 6,
+                  example: 'newPassword123',
+                  description: 'Mật khẩu mới (tối thiểu 6 ký tự)'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Reset mật khẩu thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Reset mật khẩu thành công' },
+                  user_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Mật khẩu mới không hợp lệ (quá ngắn)' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/change-role': {
+    put: {
+      tags: ['User Management (Admin)'],
+      summary: 'Change user role (Admin only)',
+      description: 'Thay đổi role của người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng cần thay đổi role'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['role'],
+              properties: {
+                role: {
+                  type: 'string',
+                  enum: ['ADMIN', 'TEACHER', 'STUDENT'],
+                  example: 'TEACHER',
+                  description: 'Role mới của người dùng'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Thay đổi role thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Thay đổi role thành công' },
+                  user_id: { type: 'number' },
+                  old_role: { type: 'string', example: 'STUDENT' },
+                  new_role: { type: 'string', example: 'TEACHER' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Role không hợp lệ hoặc giống role hiện tại' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_ASSIGN_ROLE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  // Account Approval APIs
+  '/users/pending': {
+    get: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Get pending users (Admin only)',
+      description: 'Lấy danh sách tài khoản chờ phê duyệt (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'page',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'number',
+            example: 1,
+            default: 1
+          },
+          description: 'Số trang hiện tại'
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'number',
+            example: 20,
+            default: 20
+          },
+          description: 'Số lượng user mỗi trang'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  total: { type: 'number', example: 15 },
+                  page: { type: 'number', example: 1 },
+                  limit: { type: 'number', example: 20 },
+                  totalPages: { type: 'number', example: 1 },
+                  users: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        user_id: { type: 'number', example: 5 },
+                        name: { type: 'string', example: 'Nguyễn Văn A' },
+                        email: { type: 'string', example: 'nguyenvana@example.com' },
+                        phone_number: { type: 'string', example: '0123456789' },
+                        role: { type: 'string', example: 'STUDENT' },
+                        role_name: { type: 'string', example: 'Học sinh' },
+                        approval_status: { type: 'string', example: 'PENDING' },
+                        created_date: { type: 'string', format: 'date-time' },
+                        created_by: { type: 'string', example: 'system' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_VIEW' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/approval-stats': {
+    get: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Get approval statistics (Admin only)',
+      description: 'Thống kê tài khoản theo trạng thái phê duyệt (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  pending: { type: 'number', example: 15, description: 'Số tài khoản chờ duyệt' },
+                  approved: { type: 'number', example: 120, description: 'Số tài khoản đã duyệt' },
+                  rejected: { type: 'number', example: 5, description: 'Số tài khoản bị từ chối' },
+                  total: { type: 'number', example: 140, description: 'Tổng số tài khoản' }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_VIEW' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/approve': {
+    put: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Approve user account (Admin only)',
+      description: 'Phê duyệt tài khoản người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 5
+          },
+          description: 'ID người dùng cần phê duyệt'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Phê duyệt thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Phê duyệt tài khoản thành công' },
+                  user_id: { type: 'number', example: 5 },
+                  user_name: { type: 'string', example: 'Nguyễn Văn A' },
+                  user_email: { type: 'string', example: 'nguyenvana@example.com' },
+                  approved_by: { type: 'string', example: 'admin@example.com' },
+                  approved_date: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Tài khoản đã được phê duyệt trước đó' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/reject': {
+    put: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Reject user account (Admin only)',
+      description: 'Từ chối tài khoản người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 5
+          },
+          description: 'ID người dùng cần từ chối'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['rejection_reason'],
+              properties: {
+                rejection_reason: {
+                  type: 'string',
+                  example: 'Thông tin không đầy đủ hoặc không hợp lệ',
+                  description: 'Lý do từ chối tài khoản'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Từ chối thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Từ chối tài khoản thành công' },
+                  user_id: { type: 'number', example: 5 },
+                  user_name: { type: 'string', example: 'Nguyễn Văn A' },
+                  user_email: { type: 'string', example: 'nguyenvana@example.com' },
+                  rejected_by: { type: 'string', example: 'admin@example.com' },
+                  rejected_date: { type: 'string', format: 'date-time' },
+                  rejection_reason: { type: 'string', example: 'Thông tin không đầy đủ hoặc không hợp lệ' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu lý do từ chối' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/bulk-approve': {
+    post: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Bulk approve users (Admin only)',
+      description: 'Phê duyệt nhiều tài khoản cùng lúc - tối đa 50 tài khoản (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['user_ids'],
+              properties: {
+                user_ids: {
+                  type: 'array',
+                  items: {
+                    type: 'number'
+                  },
+                  example: [5, 6, 7, 8, 9],
+                  description: 'Danh sách user_id cần phê duyệt (tối đa 50)'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Phê duyệt hàng loạt thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Phê duyệt hàng loạt thành công' },
+                  total_requested: { type: 'number', example: 5, description: 'Tổng số tài khoản yêu cầu' },
+                  approved_count: { type: 'number', example: 4, description: 'Số tài khoản đã phê duyệt' },
+                  already_approved_count: { type: 'number', example: 1, description: 'Số tài khoản đã được duyệt trước đó' },
+                  approved_users: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        user_id: { type: 'number' },
+                        name: { type: 'string' },
+                        email: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Dữ liệu không hợp lệ hoặc vượt quá 50 tài khoản' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_UPDATE' },
+        404: { description: 'Không tìm thấy người dùng nào trong danh sách' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/users/{userId}/approval-history': {
+    get: {
+      tags: ['Account Approval (Admin)'],
+      summary: 'Get user approval history (Admin only)',
+      description: 'Xem lịch sử phê duyệt của người dùng (chỉ Admin)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 5
+          },
+          description: 'ID người dùng'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  user_id: { type: 'number', example: 5 },
+                  name: { type: 'string', example: 'Nguyễn Văn A' },
+                  email: { type: 'string', example: 'nguyenvana@example.com' },
+                  current_status: { type: 'string', example: 'APPROVED', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+                  created_by: { type: 'string', example: 'system' },
+                  created_date: { type: 'string', format: 'date-time' },
+                  approval_info: {
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      status: { type: 'string', example: 'APPROVED' },
+                      processed_by: { type: 'string', example: 'admin@example.com' },
+                      processed_date: { type: 'string', format: 'date-time' },
+                      rejection_reason: { type: 'string', nullable: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền USER_VIEW' },
+        404: { description: 'Không tìm thấy người dùng' },
+        500: { description: 'Lỗi server' }
+      }
+    }
   }
 };
 
