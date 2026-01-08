@@ -11,7 +11,7 @@ function signToken(payload){
 // POST /auth/register
  async function register(req, res) {
     try {
-        const {name , email, password, phone_number, code} = req.body;
+        const {name , email, password, phone_number} = req.body;
         //1. Validate input
         if(!name || !email || !password){
             return res.status(400).json({message: "Name, email, and password are required"});
@@ -23,23 +23,14 @@ function signToken(payload){
         )
         if(existingUser.length > 0){
             return res.status(409).json({message: "User already exists"});
-        }
-        //3. Hash password
-        // const hashedPassword = await bcrypt.hash(pas';
-        const [roleRows] = await pool.query(
-            'SELECT code FROM role WHERE code = ? LIMIT 1',
-            [roleCode]
-        );
-        if (roleRows.length === 0) {
-            return res.status(400).json({
-                message: `Invalid role code: ${roleCode}. Please use a code that exists in the role table.`
-            });
-        }
+        };
+        //3. Check role code
+
 
         //4. Insert new user into database
         const [result] = await pool.query(
             'INSERT INTO `user` (name, email, password, phone_number, code, is_deleted, is_oauth2, created_by) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
-            [name, email, password, phone_number || null, roleCode, 'anonymousUser']
+            [name, email, password, phone_number || null, code ||'USER', 'anonymousUser']
         )
 
         return res.status(201).json({message: "User registered successfully ", userId: result.insertId});
