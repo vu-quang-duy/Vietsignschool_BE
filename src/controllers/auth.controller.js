@@ -57,13 +57,13 @@ function signToken(payload){
 async function login(req, res){
     try {
         const { email, password } = req.body;
-        
+
         if(!email || ! password){
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
         const [rows] = await pool.query(
-            "SELECT user_id, email, password, name FROM `user` WHERE email = ? LIMIT 1 ",
+            "SELECT user_id, email, password, name, approval_status, is_deleted FROM `user` WHERE email = ? LIMIT 1 ",
             [email]
         )
         if(rows.length === 0){
@@ -71,6 +71,28 @@ async function login(req, res){
         }
 
         const user = rows[0];
+
+        // Check if account is deleted
+        if(user.is_deleted === 1){
+            return res.status(403).json({
+                message: 'Tài khoản đã bị xóa. Vui lòng liên hệ admin để được hỗ trợ.'
+            });
+        }
+
+        // Check approval status
+        if(user.approval_status === 'PENDING'){
+            return res.status(403).json({
+                message: 'Tài khoản của bạn đang chờ phê duyệt. Vui lòng chờ admin xét duyệt.'
+            });
+        }
+
+        if(user.approval_status === 'REJECTED'){
+            return res.status(403).json({
+                message: 'Tài khoản của bạn đã bị từ chối. Vui lòng liên hệ admin để biết thêm chi tiết.'
+            });
+        }
+
+        // Verify password
         // const ok = await bcrypt.compare(String(password ?? ''), String(user.password ?? ''));
         const ok = password === user.password;
 
@@ -78,6 +100,7 @@ async function login(req, res){
             return res.status(401).json({message: "Invalid email or password"})
         }
 
+        // Only APPROVED users can login
         const token = signToken({ user_id: user.user_id, email: user.email});
 
         return res.json({
@@ -90,7 +113,7 @@ async function login(req, res){
         })
     }
     catch(error){
-        console.error('Error during login:', error);    
+        console.error('Error during login:', error);
         return res.status(500).json({ message: 'Internal server error' });}
     }
 
