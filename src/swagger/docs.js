@@ -299,7 +299,7 @@ const swaggerDocs = {
                 email: { type: 'string', example: 'newemail@example.com' },
                 phone_number: { type: 'string', example: '0123456789' },
                 gender: { type: 'string', example: 'Male' },
-                address: { type: 'string', example: '123 Đường ABC, Quận 1, TP.HCM' },
+                address: { type: 'string', example: '123 Đường ABC, Phường 1, TP.HCM' },
                 avatar_location: { type: 'string', example: '/images/avatar.jpg' },
                 birth_day: { type: 'string', format: 'date', example: '1990-01-01' },
                 code: { type: 'string', example: 'ADMIN' },
@@ -691,7 +691,7 @@ const swaggerDocs = {
                 type: { type: 'string', example: 'SCHOOL' },
                 address: { type: 'string', example: 'Số 12 Đường Nguyễn Huệ' },
                 city: { type: 'string', example: 'Thành phố Hà Nội' },
-                ward: { type: 'string', example: 'Quận Hoàn Kiếm' },
+                ward: { type: 'string', example: 'Phường Hoàn Kiếm' },
                 street: { type: 'string', example: 'Đường Nguyễn Huệ' },
                 phone: { type: 'string', example: '024 3825 6789' },
                 email: { type: 'string', example: 'thptnguyenhue@edu.vn' }
@@ -789,7 +789,7 @@ const swaggerDocs = {
                 type: { type: 'string', example: 'SCHOOL' },
                 address: { type: 'string', example: 'Số 12 Đường Nguyễn Huệ' },
                 city: { type: 'string', example: 'Thành phố Hà Nội' },
-                ward: { type: 'string', example: 'Quận Hoàn Kiếm' },
+                ward: { type: 'string', example: 'Phường Hoàn Kiếm' },
                 street: { type: 'string', example: 'Đường Nguyễn Huệ' },
                 phone: { type: 'string', example: '024 3825 6789' },
                 email: { type: 'string', example: 'thptnguyenhue@edu.vn' }
@@ -1890,7 +1890,7 @@ const swaggerDocs = {
                 },
                 address: {
                   type: 'string',
-                  example: '456 Đường XYZ, Quận 2, TP.HCM',
+                  example: '456 Đường XYZ, Phường 2, TP.HCM',
                   description: 'Địa chỉ'
                 },
                 birth_day: {

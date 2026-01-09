@@ -180,42 +180,122 @@ async function isSuperAdmin(userId) {
 
 /**
  * Lấy quyền tự động cấp dựa trên vai trò tổ chức
+ * Mapping theo file migrations/add_role_permissions_mapping.sql
  */
 function getAutoPermissionsByRole(role) {
     const permissionsByRole = {
         'SUPER_ADMIN': [
+            // Home & Dashboard
+            'HOME_VIEW', 'DASHBOARD_VIEW',
+            // User Management
             'USER_VIEW', 'USER_CREATE', 'USER_UPDATE', 'USER_DELETE', 'USER_ASSIGN_ROLE',
-            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE', 'COURSE_DELETE',
-            'LESSON_VIEW', 'LESSON_CREATE', 'LESSON_UPDATE', 'LESSON_DELETE',
+            // Organization
             'ORGANIZATION_VIEW', 'ORGANIZATION_CREATE', 'ORGANIZATION_UPDATE', 'ORGANIZATION_DELETE',
-            'REPORT_VIEW', 'REPORT_EXPORT',
-            'SETTING_VIEW', 'SETTING_UPDATE'
+            // Learning
+            'LEARNING_VIEW', 'LEARNING_CREATE', 'LEARNING_UPDATE', 'LEARNING_DELETE', 'LEARNING_STUDY',
+            // Class
+            'CLASS_VIEW', 'CLASS_CREATE', 'CLASS_UPDATE', 'CLASS_DELETE', 'CLASS_REGISTER',
+            // Notification
+            'NOTIFICATION_VIEW', 'NOTIFICATION_CREATE', 'NOTIFICATION_UPDATE', 'NOTIFICATION_DELETE',
+            // Tools
+            'TOOL_VIEW', 'TOOL_CREATE', 'TOOL_UPDATE', 'TOOL_DELETE',
+            // Exam
+            'EXAM_VIEW', 'EXAM_CREATE', 'EXAM_UPDATE', 'EXAM_DELETE', 'EXAM_TAKE', 'EXAM_GRADE',
+            // Statistics
+            'STATISTICS_VIEW', 'STATISTICS_EXPORT',
+            // Dictionary
+            'DICTIONARY_VIEW', 'DICTIONARY_CREATE', 'DICTIONARY_UPDATE', 'DICTIONARY_DELETE',
+            // Game
+            'GAME_VIEW', 'GAME_CREATE', 'GAME_UPDATE', 'GAME_DELETE',
+            // System
+            'SYSTEM_ADMIN', 'SETTING_VIEW', 'SETTING_UPDATE',
+            // Course
+            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE', 'COURSE_DELETE'
         ],
         'CENTER_ADMIN': [
-            'USER_VIEW', 'USER_CREATE', 'USER_UPDATE', 'USER_ASSIGN_ROLE',
-            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE', 'COURSE_DELETE',
-            'LESSON_VIEW', 'LESSON_CREATE', 'LESSON_UPDATE', 'LESSON_DELETE',
-            'ORGANIZATION_VIEW', 'ORGANIZATION_UPDATE',
-            'REPORT_VIEW', 'REPORT_EXPORT'
+            // Home & Dashboard
+            'HOME_VIEW', 'DASHBOARD_VIEW',
+            // User Management
+            'USER_VIEW', 'USER_CREATE', 'USER_UPDATE',
+            // Organization (chỉ xem)
+            'ORGANIZATION_VIEW',
+            // Learning
+            'LEARNING_VIEW', 'LEARNING_CREATE', 'LEARNING_UPDATE', 'LEARNING_DELETE',
+            // Class
+            'CLASS_VIEW', 'CLASS_CREATE', 'CLASS_UPDATE', 'CLASS_DELETE',
+            // Notification
+            'NOTIFICATION_VIEW', 'NOTIFICATION_CREATE', 'NOTIFICATION_UPDATE', 'NOTIFICATION_DELETE',
+            // Tools
+            'TOOL_VIEW', 'TOOL_CREATE', 'TOOL_UPDATE', 'TOOL_DELETE',
+            // Exam
+            'EXAM_VIEW', 'EXAM_CREATE', 'EXAM_UPDATE', 'EXAM_DELETE', 'EXAM_GRADE',
+            // Statistics
+            'STATISTICS_VIEW', 'STATISTICS_EXPORT',
+            // Dictionary
+            'DICTIONARY_VIEW',
+            // Game
+            'GAME_VIEW', 'GAME_CREATE', 'GAME_UPDATE', 'GAME_DELETE',
+            // Course
+            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE'
         ],
         'SCHOOL_ADMIN': [
-            'USER_VIEW', 'USER_UPDATE',
-            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE',
-            'LESSON_VIEW', 'LESSON_CREATE', 'LESSON_UPDATE',
+            // Same as CENTER_ADMIN - có thể customize sau nếu cần
+            'HOME_VIEW', 'DASHBOARD_VIEW',
+            'USER_VIEW', 'USER_CREATE', 'USER_UPDATE',
             'ORGANIZATION_VIEW',
-            'REPORT_VIEW'
+            'LEARNING_VIEW', 'LEARNING_CREATE', 'LEARNING_UPDATE', 'LEARNING_DELETE',
+            'CLASS_VIEW', 'CLASS_CREATE', 'CLASS_UPDATE', 'CLASS_DELETE',
+            'NOTIFICATION_VIEW', 'NOTIFICATION_CREATE', 'NOTIFICATION_UPDATE', 'NOTIFICATION_DELETE',
+            'TOOL_VIEW', 'TOOL_CREATE', 'TOOL_UPDATE', 'TOOL_DELETE',
+            'EXAM_VIEW', 'EXAM_CREATE', 'EXAM_UPDATE', 'EXAM_DELETE', 'EXAM_GRADE',
+            'STATISTICS_VIEW', 'STATISTICS_EXPORT',
+            'DICTIONARY_VIEW',
+            'GAME_VIEW', 'GAME_CREATE', 'GAME_UPDATE', 'GAME_DELETE',
+            'COURSE_VIEW', 'COURSE_CREATE', 'COURSE_UPDATE'
         ],
         'TEACHER': [
-            'USER_VIEW',
-            'COURSE_VIEW', 'COURSE_UPDATE',
-            'LESSON_VIEW', 'LESSON_CREATE', 'LESSON_UPDATE',
-            'REPORT_VIEW'
+            // Home & Dashboard
+            'HOME_VIEW', 'DASHBOARD_VIEW',
+            // Notification
+            'NOTIFICATION_VIEW',
+            // Class
+            'CLASS_VIEW', 'CLASS_UPDATE',
+            // Learning
+            'LEARNING_VIEW', 'LEARNING_CREATE', 'LEARNING_UPDATE',
+            // Statistics
+            'STATISTICS_VIEW',
+            // Exam
+            'EXAM_VIEW', 'EXAM_CREATE', 'EXAM_UPDATE', 'EXAM_GRADE',
+            // Dictionary
+            'DICTIONARY_VIEW',
+            // Game
+            'GAME_VIEW',
+            // Course
+            'COURSE_VIEW', 'COURSE_UPDATE'
         ],
         'STUDENT': [
-            'COURSE_VIEW',
-            'LESSON_VIEW'
+            // Home & Dashboard
+            'HOME_VIEW', 'DASHBOARD_VIEW',
+            // Notification
+            'NOTIFICATION_VIEW',
+            // Learning
+            'LEARNING_VIEW', 'LEARNING_STUDY',
+            // Statistics
+            'STATISTICS_VIEW',
+            // Exam
+            'EXAM_VIEW', 'EXAM_TAKE',
+            // Class
+            'CLASS_VIEW', 'CLASS_REGISTER',
+            // Dictionary
+            'DICTIONARY_VIEW',
+            // Game
+            'GAME_VIEW',
+            // Course
+            'COURSE_VIEW'
         ],
         'USER': [
+            // Quyền cơ bản nhất
+            'HOME_VIEW', 'DASHBOARD_VIEW',
             'COURSE_VIEW'
         ]
     };
