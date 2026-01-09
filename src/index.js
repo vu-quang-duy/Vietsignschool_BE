@@ -6,6 +6,7 @@ const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const organizationRoutes = require("./routes/organization.routes");
 const permissionRoutes = require("./routes/permission.routes");
+const orgRoleRoutes = require("./routes/orgRole.routes");
 const { authRequired } = require("./middleware/auth.middleware");
 const { specs, swaggerUi } = require("./swagger/index");
 
@@ -27,6 +28,7 @@ app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/organizations", organizationRoutes);
 app.use("/api", permissionRoutes);
+app.use("/org-roles", orgRoleRoutes);
 
 //router login
 app.get("/me",authRequired, (req, res) => {

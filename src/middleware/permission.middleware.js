@@ -1,4 +1,5 @@
 const db = require('../db');
+const { getAutoPermissionsByRole } = require('./orgRole.middleware');
 
 /**
  * Kiểm tra user có quyền cụ thể không
@@ -18,7 +19,7 @@ function hasPermission(permissionCode, organizationId = null) {
             // Lấy organization_id từ params hoặc body nếu không truyền vào
             const orgId = organizationId || req.params.organization_id || req.body.organization_id || null;
 
-            // Kiểm tra quyền
+            // Kiểm tra quyền (bao gồm cả organizational role permissions)
             const hasAccess = await checkUserPermission(userId, permissionCode, orgId);
 
             if (!hasAccess) {
@@ -160,7 +161,7 @@ function isOrganizationManager(req, res, next) {
 
             // Kiểm tra user có phải manager không
             const [rows] = await db.query(
-                `SELECT role, is_manager FROM user_organization
+                `SELECT role, is_manager FROM organization
                  WHERE user_id = ? AND organization_id = ? AND status = 'ACTIVE'
                  LIMIT 1`,
                 [userId, orgId]
@@ -213,7 +214,39 @@ async function checkUserPermission(userId, permissionCode, organizationId = null
             return userPerms[0].is_granted === 1;
         }
 
-        // 2. Kiểm tra role-based permission
+        // 2. Kiểm tra organizational role permissions (NEW)
+        if (organizationId) {
+            const [orgRole] = await db.query(
+                `SELECT role_in_org FROM organization_manager
+                 WHERE user_id = ? AND organization_id = ?
+                 LIMIT 1`,
+                [userId, organizationId]
+            );
+
+            if (orgRole.length > 0) {
+                const autoPermissions = getAutoPermissionsByRole(orgRole[0].role_in_org);
+                if (autoPermissions.includes(permissionCode)) {
+                    return true;
+                }
+            }
+        }
+
+        // 3. Kiểm tra global SUPER_ADMIN role
+        const [superAdmin] = await db.query(
+            `SELECT role_in_org FROM organization_manager
+             WHERE user_id = ? AND role_in_org = 'SUPER_ADMIN'
+             LIMIT 1`,
+            [userId]
+        );
+
+        if (superAdmin.length > 0) {
+            const autoPermissions = getAutoPermissionsByRole('SUPER_ADMIN');
+            if (autoPermissions.includes(permissionCode)) {
+                return true;
+            }
+        }
+
+        // 4. Kiểm tra role-based permission (từ bảng role)
         const [rolePerms] = await db.query(
             `SELECT rp.permission_code
              FROM role_permissions rp
@@ -227,7 +260,7 @@ async function checkUserPermission(userId, permissionCode, organizationId = null
             return true;
         }
 
-        // 3. Kiểm tra SYSTEM_ADMIN (admin có toàn quyền)
+        // 5. Kiểm tra SYSTEM_ADMIN (admin có toàn quyền)
         const [adminCheck] = await db.query(
             `SELECT rp.permission_code
              FROM role_permissions rp

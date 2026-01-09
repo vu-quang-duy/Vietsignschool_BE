@@ -291,116 +291,6 @@ async function removeRolePermission(req, res) {
     }
 }
 
-// POST /organizations/:orgId/assign-manager - Gán người phụ trách tổ chức
-async function assignOrganizationManager(req, res) {
-    try {
-        const { orgId } = req.params;
-        const { user_id } = req.body;
-        const assignedBy = req.user?.email || 'system';
-
-        if (!user_id) {
-            return res.status(400).json({
-                message: 'Thiếu thông tin user_id'
-            });
-        }
-
-        // Kiểm tra user có trong tổ chức chưa
-        const [existing] = await db.query(
-            'SELECT * FROM user_organization WHERE user_id = ? AND organization_id = ?',
-            [user_id, orgId]
-        );
-
-        if (existing.length === 0) {
-            // Thêm user vào tổ chức với role MANAGER
-            await db.query(
-                `INSERT INTO user_organization (user_id, organization_id, role, status, is_manager, assigned_by)
-                 VALUES (?, ?, 'MANAGER', 'ACTIVE', 1, ?)`,
-                [user_id, orgId, assignedBy]
-            );
-        } else {
-            // Cập nhật is_manager = 1
-            await db.query(
-                `UPDATE user_organization
-                 SET is_manager = 1, role = 'MANAGER', assigned_by = ?, assigned_date = NOW()
-                 WHERE user_id = ? AND organization_id = ?`,
-                [assignedBy, user_id, orgId]
-            );
-        }
-
-        return res.json({
-            message: 'Gán người phụ trách thành công',
-            organization_id: orgId,
-            manager_user_id: user_id
-        });
-    } catch (error) {
-        console.error('Error assigning manager:', error);
-        return res.status(500).json({
-            message: 'Lỗi server',
-            error: error.message
-        });
-    }
-}
-
-// DELETE /organizations/:orgId/remove-manager/:userId - Gỡ người phụ trách
-async function removeOrganizationManager(req, res) {
-    try {
-        const { orgId, userId } = req.params;
-
-        const [result] = await db.query(
-            `UPDATE user_organization
-             SET is_manager = 0, role = 'MEMBER'
-             WHERE user_id = ? AND organization_id = ?`,
-            [userId, orgId]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: 'Không tìm thấy người phụ trách'
-            });
-        }
-
-        return res.json({
-            message: 'Gỡ người phụ trách thành công',
-            organization_id: orgId,
-            user_id: userId
-        });
-    } catch (error) {
-        console.error('Error removing manager:', error);
-        return res.status(500).json({
-            message: 'Lỗi server',
-            error: error.message
-        });
-    }
-}
-
-// GET /organizations/:orgId/managers - Lấy danh sách người phụ trách
-async function getOrganizationManagers(req, res) {
-    try {
-        const { orgId } = req.params;
-
-        const [managers] = await db.query(
-            `SELECT u.user_id, u.name, u.email, uo.role, uo.assigned_by, uo.assigned_date
-             FROM user_organization uo
-             JOIN user u ON uo.user_id = u.user_id
-             WHERE uo.organization_id = ? AND uo.is_manager = 1 AND uo.status = 'ACTIVE'
-             ORDER BY uo.assigned_date DESC`,
-            [orgId]
-        );
-
-        return res.json({
-            organization_id: orgId,
-            total: managers.length,
-            managers: managers
-        });
-    } catch (error) {
-        console.error('Error getting managers:', error);
-        return res.status(500).json({
-            message: 'Lỗi server',
-            error: error.message
-        });
-    }
-}
-
 module.exports = {
     getAllPermissions,
     getMyPermissions,
@@ -409,8 +299,5 @@ module.exports = {
     revokePermission,
     getRolePermissions,
     addRolePermission,
-    removeRolePermission,
-    assignOrganizationManager,
-    removeOrganizationManager,
-    getOrganizationManagers
+    removeRolePermission
 };

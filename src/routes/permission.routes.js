@@ -8,9 +8,6 @@ const {
     getRolePermissions,
     addRolePermission,
     removeRolePermission,
-    assignOrganizationManager,
-    removeOrganizationManager,
-    getOrganizationManagers
 } = require('../controllers/permission.controller');
 const { authRequired } = require('../middleware/auth.middleware');
 const { isAdmin, hasPermission } = require('../middleware/permission.middleware');
@@ -88,7 +85,6 @@ router.post(
     '/organizations/:orgId/assign-manager',
     authRequired,
     hasPermission('ORG_ASSIGN_MANAGER'),
-    assignOrganizationManager
 );
 
 /**

@@ -131,7 +131,7 @@ async function logManagerAssign(req, organizationId, managerId) {
     await logUserAction({
         user_id: req.user?.user_id,
         action: 'MANAGER_ASSIGNED',
-        resource: 'user_organization',
+        resource: 'organization',
         details: {
             organization_id: organizationId,
             manager_user_id: managerId,
@@ -149,7 +149,7 @@ async function logManagerRemove(req, organizationId, managerId) {
     await logUserAction({
         user_id: req.user?.user_id,
         action: 'MANAGER_REMOVED',
-        resource: 'user_organization',
+        resource: 'organization',
         details: {
             organization_id: organizationId,
             manager_user_id: managerId,
