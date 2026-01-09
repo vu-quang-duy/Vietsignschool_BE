@@ -145,55 +145,53 @@ function hasRole(roles) {
 /**
  * Kiểm tra user có phải là manager của tổ chức không
  */
-function isOrganizationManager(req, res, next) {
-    return async (req, res, next) => {
-        try {
-            const userId = req.user?.user_id;
-            const orgId = req.params.organization_id || req.params.id || req.body.organization_id;
+async function isOrganizationManager(req, res, next) {
+    try {
+        const userId = req.user?.user_id;
+        const orgId = req.params.organization_id || req.params.id || req.body.organization_id;
 
-            if (!userId) {
-                return res.status(401).json({ message: 'Chưa đăng nhập' });
-            }
+        if (!userId) {
+            return res.status(401).json({ message: 'Chưa đăng nhập' });
+        }
 
-            if (!orgId) {
-                return res.status(400).json({ message: 'Thiếu thông tin organization_id' });
-            }
+        if (!orgId) {
+            return res.status(400).json({ message: 'Thiếu thông tin organization_id' });
+        }
 
-            // Kiểm tra user có phải manager không
-            const [rows] = await db.query(
-                `SELECT role, is_manager FROM organization
-                 WHERE user_id = ? AND organization_id = ? AND status = 'ACTIVE'
-                 LIMIT 1`,
-                [userId, orgId]
-            );
+        // Kiểm tra user có phải manager không
+        const [rows] = await db.query(
+            `SELECT role, is_manager FROM organization
+             WHERE user_id = ? AND organization_id = ? AND status = 'ACTIVE'
+             LIMIT 1`,
+            [userId, orgId]
+        );
 
-            if (rows.length === 0) {
-                return res.status(403).json({
-                    message: 'Bạn không phải thành viên của tổ chức này'
-                });
-            }
-
-            // Kiểm tra có phải manager hoặc có quyền quản lý
-            const isManager = rows[0].is_manager === 1 || rows[0].role === 'MANAGER';
-
-            if (!isManager) {
-                return res.status(403).json({
-                    message: 'Bạn không phải người phụ trách tổ chức này'
-                });
-            }
-
-            req.orgRole = rows[0].role;
-            req.isManager = true;
-
-            next();
-        } catch (error) {
-            console.error('Error in isOrganizationManager middleware:', error);
-            return res.status(500).json({
-                message: 'Lỗi server',
-                error: error.message
+        if (rows.length === 0) {
+            return res.status(403).json({
+                message: 'Bạn không phải thành viên của tổ chức này'
             });
         }
-    };
+
+        // Kiểm tra có phải manager hoặc có quyền quản lý
+        const isManager = rows[0].is_manager === 1 || rows[0].role === 'MANAGER';
+
+        if (!isManager) {
+            return res.status(403).json({
+                message: 'Bạn không phải người phụ trách tổ chức này'
+            });
+        }
+
+        req.orgRole = rows[0].role;
+        req.isManager = true;
+
+        next();
+    } catch (error) {
+        console.error('Error in isOrganizationManager middleware:', error);
+        return res.status(500).json({
+            message: 'Lỗi server',
+            error: error.message
+        });
+    }
 }
 
 /**
