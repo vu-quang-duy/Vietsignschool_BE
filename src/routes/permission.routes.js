@@ -10,7 +10,7 @@ const {
     removeRolePermission,
 } = require('../controllers/permission.controller');
 const { authRequired } = require('../middleware/auth.middleware');
-const { isAdmin, hasPermission } = require('../middleware/permission.middleware');
+const { isAdmin } = require('../middleware/permission.middleware');
 
 const router = express.Router();
 
@@ -73,37 +73,5 @@ router.post('/roles/:roleCode/permissions', authRequired, isAdmin, addRolePermis
  * @access Private - Admin only
  */
 router.delete('/roles/:roleCode/permissions/:permissionCode', authRequired, isAdmin, removeRolePermission);
-
-// ==================== Organization Manager Routes ====================
-
-/**
- * @route POST /organizations/:orgId/assign-manager
- * @desc Gán người phụ trách cho tổ chức
- * @access Private - Admin or ORG_ASSIGN_MANAGER permission
- */
-router.post(
-    '/organizations/:orgId/assign-manager',
-    authRequired,
-    hasPermission('ORG_ASSIGN_MANAGER'),
-);
-
-/**
- * @route DELETE /organizations/:orgId/remove-manager/:userId
- * @desc Gỡ người phụ trách khỏi tổ chức
- * @access Private - Admin or ORG_ASSIGN_MANAGER permission
- */
-router.delete(
-    '/organizations/:orgId/remove-manager/:userId',
-    authRequired,
-    hasPermission('ORG_ASSIGN_MANAGER'),
-    removeOrganizationManager
-);
-
-/**
- * @route GET /organizations/:orgId/managers
- * @desc Lấy danh sách người phụ trách của tổ chức
- * @access Private - Authenticated user
- */
-router.get('/organizations/:orgId/managers', authRequired, getOrganizationManagers);
 
 module.exports = router;
