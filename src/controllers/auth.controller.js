@@ -63,7 +63,7 @@ async function login(req, res){
         }
 
         const [rows] = await pool.query(
-            "SELECT user_id, email, password, name, approval_status, is_deleted FROM `user` WHERE email = ? LIMIT 1 ",
+            "SELECT user_id, email, password, name, is_deleted FROM `user` WHERE email = ? LIMIT 1 ",
             [email]
         )
         if(rows.length === 0){
@@ -79,19 +79,6 @@ async function login(req, res){
             });
         }
 
-        // Check approval status
-        if(user.approval_status === 'PENDING'){
-            return res.status(403).json({
-                message: 'Tài khoản của bạn đang chờ phê duyệt. Vui lòng chờ admin xét duyệt.'
-            });
-        }
-
-        if(user.approval_status === 'REJECTED'){
-            return res.status(403).json({
-                message: 'Tài khoản của bạn đã bị từ chối. Vui lòng liên hệ admin để biết thêm chi tiết.'
-            });
-        }
-
         // Verify password
         // const ok = await bcrypt.compare(String(password ?? ''), String(user.password ?? ''));
         const ok = password === user.password;
@@ -100,7 +87,7 @@ async function login(req, res){
             return res.status(401).json({message: "Invalid email or password"})
         }
 
-        // Only APPROVED users can login
+        // Generate token
         const token = signToken({ user_id: user.user_id, email: user.email});
 
         return res.json({
