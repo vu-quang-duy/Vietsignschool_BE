@@ -1297,36 +1297,85 @@ const swaggerDocs = {
     }
   },
 
-  '/api/organizations/{orgId}/assign-manager': {
-    post: {
-      tags: ['Permission Management'],
-      summary: 'Assign organization manager',
-      description: 'Gán người phụ trách cho tổ chức (Admin hoặc có quyền ORG_ASSIGN_MANAGER)',
+  // Organization Role Management APIs
+  '/org-roles/my-organizations': {
+    get: {
+      tags: ['Organization Role Management'],
+      summary: 'Get my organizations',
+      description: 'Lấy tất cả tổ chức mà user đã đăng nhập tham gia',
       security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: 'orgId',
-          in: 'path',
-          required: true,
-          schema: {
-            type: 'number',
-            example: 1
-          },
-          description: 'ID tổ chức'
-        }
-      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  user_id: { type: 'number', example: 1 },
+                  total_organizations: { type: 'number', example: 3 },
+                  organizations: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        organization_id: { type: 'number', example: 1 },
+                        organization_name: { type: 'string', example: 'Trường THPT ABC' },
+                        role_in_org: {
+                          type: 'string',
+                          example: 'TEACHER',
+                          enum: ['SUPER_ADMIN', 'CENTER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT', 'USER']
+                        },
+                        is_primary: { type: 'number', example: 1, description: '1 = tổ chức chính, 0 = không' },
+                        assigned_date: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Chưa đăng nhập' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/org-roles/assign': {
+    post: {
+      tags: ['Organization Role Management'],
+      summary: 'Assign organization role to user',
+      description: 'Gán vai trò tổ chức cho user (yêu cầu CENTER_ADMIN trở lên)',
+      security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
         content: {
           'application/json': {
             schema: {
               type: 'object',
-              required: ['user_id'],
+              required: ['organization_id', 'user_id', 'role_in_org'],
               properties: {
+                organization_id: {
+                  type: 'number',
+                  example: 1,
+                  description: 'ID tổ chức'
+                },
                 user_id: {
                   type: 'number',
                   example: 5,
-                  description: 'ID người dùng sẽ làm người phụ trách'
+                  description: 'ID người dùng cần gán vai trò'
+                },
+                role_in_org: {
+                  type: 'string',
+                  enum: ['SUPER_ADMIN', 'CENTER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT', 'USER'],
+                  example: 'TEACHER',
+                  description: 'Vai trò trong tổ chức'
+                },
+                is_primary: {
+                  type: 'boolean',
+                  example: false,
+                  description: 'Đặt làm tổ chức chính của user (mặc định: false)'
                 }
               }
             }
@@ -1335,37 +1384,98 @@ const swaggerDocs = {
       },
       responses: {
         200: {
-          description: 'Gán người phụ trách thành công',
+          description: 'Gán vai trò thành công',
           content: {
             'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  message: { type: 'string', example: 'Gán người phụ trách thành công' },
-                  organization_id: { type: 'number' },
-                  manager_user_id: { type: 'number' }
+                  message: { type: 'string', example: 'Gán vai trò thành công' },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      user_id: { type: 'number' },
+                      organization_id: { type: 'number' },
+                      role_in_org: { type: 'string' },
+                      is_primary: { type: 'boolean' }
+                    }
+                  }
                 }
               }
             }
           }
         },
-        400: { description: 'Thiếu thông tin user_id' },
+        400: { description: 'Thiếu thông tin bắt buộc' },
         401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền thực hiện hành động này' },
+        403: { description: 'Không có quyền gán vai trò này' },
         500: { description: 'Lỗi server' }
       }
     }
   },
 
-  '/api/organizations/{orgId}/remove-manager/{userId}': {
+  '/org-roles/remove': {
     delete: {
-      tags: ['Permission Management'],
-      summary: 'Remove organization manager',
-      description: 'Gỡ người phụ trách khỏi tổ chức (Admin hoặc có quyền ORG_ASSIGN_MANAGER)',
+      tags: ['Organization Role Management'],
+      summary: 'Remove organization role from user',
+      description: 'Xóa vai trò tổ chức của user (yêu cầu CENTER_ADMIN trở lên)',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['organization_id', 'user_id'],
+              properties: {
+                organization_id: {
+                  type: 'number',
+                  example: 1,
+                  description: 'ID tổ chức'
+                },
+                user_id: {
+                  type: 'number',
+                  example: 5,
+                  description: 'ID người dùng cần xóa vai trò'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Xóa vai trò thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Xóa vai trò thành công' },
+                  user_id: { type: 'number' },
+                  organization_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu thông tin bắt buộc' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không có quyền xóa vai trò' },
+        404: { description: 'Không tìm thấy vai trò' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/org-roles/organization/{organizationId}/users': {
+    get: {
+      tags: ['Organization Role Management'],
+      summary: 'Get all users in organization',
+      description: 'Lấy tất cả users trong tổ chức với vai trò',
       security: [{ bearerAuth: [] }],
       parameters: [
         {
-          name: 'orgId',
+          name: 'organizationId',
           in: 'path',
           required: true,
           schema: {
@@ -1375,49 +1485,169 @@ const swaggerDocs = {
           description: 'ID tổ chức'
         },
         {
-          name: 'userId',
-          in: 'path',
-          required: true,
+          name: 'role_in_org',
+          in: 'query',
+          required: false,
           schema: {
-            type: 'number',
-            example: 5
+            type: 'string',
+            enum: ['SUPER_ADMIN', 'CENTER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT', 'USER'],
+            example: 'TEACHER'
           },
-          description: 'ID người phụ trách cần gỡ'
+          description: 'Lọc theo vai trò'
         }
       ],
       responses: {
         200: {
-          description: 'Gỡ người phụ trách thành công',
+          description: 'Success',
           content: {
             'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  message: { type: 'string', example: 'Gỡ người phụ trách thành công' },
                   organization_id: { type: 'number' },
-                  user_id: { type: 'number' }
+                  total_users: { type: 'number', example: 15 },
+                  users: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        user_id: { type: 'number' },
+                        name: { type: 'string', example: 'Nguyễn Văn A' },
+                        email: { type: 'string', example: 'nguyenvana@example.com' },
+                        role_in_org: { type: 'string', example: 'TEACHER' },
+                        is_primary: { type: 'number', example: 1 },
+                        assigned_date: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu organization_id' },
+        401: { description: 'Chưa đăng nhập' },
+        403: { description: 'Không thuộc tổ chức này' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/org-roles/user/{userId}/primary-organization': {
+    get: {
+      tags: ['Organization Role Management'],
+      summary: 'Get user primary organization',
+      description: 'Lấy tổ chức chính của user',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  user_id: { type: 'number' },
+                  primary_organization: {
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      organization_id: { type: 'number' },
+                      organization_name: { type: 'string' },
+                      role_in_org: { type: 'string' },
+                      assigned_date: { type: 'string', format: 'date-time' }
+                    }
+                  }
                 }
               }
             }
           }
         },
         401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền thực hiện hành động này' },
-        404: { description: 'Không tìm thấy người phụ trách' },
+        404: { description: 'User không có tổ chức chính' },
+        500: { description: 'Lỗi server' }
+      }
+    },
+    put: {
+      tags: ['Organization Role Management'],
+      summary: 'Set user primary organization',
+      description: 'Đặt tổ chức chính cho user',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'userId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'number',
+            example: 1
+          },
+          description: 'ID người dùng'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['organization_id'],
+              properties: {
+                organization_id: {
+                  type: 'number',
+                  example: 1,
+                  description: 'ID tổ chức muốn đặt làm chính'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Đặt tổ chức chính thành công',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Đặt tổ chức chính thành công' },
+                  user_id: { type: 'number' },
+                  primary_organization_id: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu organization_id' },
+        401: { description: 'Chưa đăng nhập' },
+        404: { description: 'User không thuộc tổ chức này' },
         500: { description: 'Lỗi server' }
       }
     }
   },
 
-  '/api/organizations/{orgId}/managers': {
+  '/org-roles/organization/{organizationId}/stats': {
     get: {
-      tags: ['Permission Management'],
-      summary: 'Get organization managers',
-      description: 'Lấy danh sách người phụ trách của tổ chức',
+      tags: ['Organization Role Management'],
+      summary: 'Get organization role statistics',
+      description: 'Thống kê vai trò trong tổ chức',
       security: [{ bearerAuth: [] }],
       parameters: [
         {
-          name: 'orgId',
+          name: 'organizationId',
           in: 'path',
           required: true,
           schema: {
@@ -1436,19 +1666,16 @@ const swaggerDocs = {
                 type: 'object',
                 properties: {
                   organization_id: { type: 'number' },
-                  total: { type: 'number', example: 2 },
-                  managers: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        user_id: { type: 'number' },
-                        name: { type: 'string' },
-                        email: { type: 'string' },
-                        role: { type: 'string', example: 'MANAGER' },
-                        assigned_by: { type: 'string' },
-                        assigned_date: { type: 'string', format: 'date-time' }
-                      }
+                  total_users: { type: 'number', example: 50 },
+                  role_distribution: {
+                    type: 'object',
+                    properties: {
+                      SUPER_ADMIN: { type: 'number', example: 1 },
+                      CENTER_ADMIN: { type: 'number', example: 2 },
+                      SCHOOL_ADMIN: { type: 'number', example: 5 },
+                      TEACHER: { type: 'number', example: 20 },
+                      STUDENT: { type: 'number', example: 20 },
+                      USER: { type: 'number', example: 2 }
                     }
                   }
                 }
@@ -1456,6 +1683,61 @@ const swaggerDocs = {
             }
           }
         },
+        400: { description: 'Thiếu organization_id' },
+        401: { description: 'Chưa đăng nhập' },
+        500: { description: 'Lỗi server' }
+      }
+    }
+  },
+
+  '/org-roles/check-role': {
+    post: {
+      tags: ['Organization Role Management'],
+      summary: 'Check user role in organization',
+      description: 'Kiểm tra vai trò của user trong tổ chức',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['organization_id', 'user_id'],
+              properties: {
+                organization_id: {
+                  type: 'number',
+                  example: 1,
+                  description: 'ID tổ chức'
+                },
+                user_id: {
+                  type: 'number',
+                  example: 5,
+                  description: 'ID người dùng'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  user_id: { type: 'number' },
+                  organization_id: { type: 'number' },
+                  has_role: { type: 'boolean', example: true },
+                  role_in_org: { type: 'string', example: 'TEACHER' },
+                  is_primary: { type: 'number', example: 1 }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Thiếu thông tin bắt buộc' },
         401: { description: 'Chưa đăng nhập' },
         500: { description: 'Lỗi server' }
       }
@@ -2012,338 +2294,6 @@ const swaggerDocs = {
         400: { description: 'Role không hợp lệ hoặc giống role hiện tại' },
         401: { description: 'Chưa đăng nhập' },
         403: { description: 'Không có quyền USER_ASSIGN_ROLE' },
-        404: { description: 'Không tìm thấy người dùng' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  // Account Approval APIs
-  '/users/pending': {
-    get: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Get pending users (Admin only)',
-      description: 'Lấy danh sách tài khoản chờ phê duyệt (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: 'page',
-          in: 'query',
-          required: false,
-          schema: {
-            type: 'number',
-            example: 1,
-            default: 1
-          },
-          description: 'Số trang hiện tại'
-        },
-        {
-          name: 'limit',
-          in: 'query',
-          required: false,
-          schema: {
-            type: 'number',
-            example: 20,
-            default: 20
-          },
-          description: 'Số lượng user mỗi trang'
-        }
-      ],
-      responses: {
-        200: {
-          description: 'Success',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  total: { type: 'number', example: 15 },
-                  page: { type: 'number', example: 1 },
-                  limit: { type: 'number', example: 20 },
-                  totalPages: { type: 'number', example: 1 },
-                  users: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        user_id: { type: 'number', example: 5 },
-                        name: { type: 'string', example: 'Nguyễn Văn A' },
-                        email: { type: 'string', example: 'nguyenvana@example.com' },
-                        phone_number: { type: 'string', example: '0123456789' },
-                        role: { type: 'string', example: 'STUDENT' },
-                        role_name: { type: 'string', example: 'Học sinh' },
-                        approval_status: { type: 'string', example: 'PENDING' },
-                        created_date: { type: 'string', format: 'date-time' },
-                        created_by: { type: 'string', example: 'system' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_VIEW' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  '/users/approval-stats': {
-    get: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Get approval statistics (Admin only)',
-      description: 'Thống kê tài khoản theo trạng thái phê duyệt (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: 'Success',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  pending: { type: 'number', example: 15, description: 'Số tài khoản chờ duyệt' },
-                  approved: { type: 'number', example: 120, description: 'Số tài khoản đã duyệt' },
-                  rejected: { type: 'number', example: 5, description: 'Số tài khoản bị từ chối' },
-                  total: { type: 'number', example: 140, description: 'Tổng số tài khoản' }
-                }
-              }
-            }
-          }
-        },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_VIEW' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  '/users/{userId}/approve': {
-    put: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Approve user account (Admin only)',
-      description: 'Phê duyệt tài khoản người dùng (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: 'userId',
-          in: 'path',
-          required: true,
-          schema: {
-            type: 'number',
-            example: 5
-          },
-          description: 'ID người dùng cần phê duyệt'
-        }
-      ],
-      responses: {
-        200: {
-          description: 'Phê duyệt thành công',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  message: { type: 'string', example: 'Phê duyệt tài khoản thành công' },
-                  user_id: { type: 'number', example: 5 },
-                  user_name: { type: 'string', example: 'Nguyễn Văn A' },
-                  user_email: { type: 'string', example: 'nguyenvana@example.com' },
-                  approved_by: { type: 'string', example: 'admin@example.com' },
-                  approved_date: { type: 'string', format: 'date-time' }
-                }
-              }
-            }
-          }
-        },
-        400: { description: 'Tài khoản đã được phê duyệt trước đó' },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_UPDATE' },
-        404: { description: 'Không tìm thấy người dùng' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  '/users/{userId}/reject': {
-    put: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Reject user account (Admin only)',
-      description: 'Từ chối tài khoản người dùng (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: 'userId',
-          in: 'path',
-          required: true,
-          schema: {
-            type: 'number',
-            example: 5
-          },
-          description: 'ID người dùng cần từ chối'
-        }
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              required: ['rejection_reason'],
-              properties: {
-                rejection_reason: {
-                  type: 'string',
-                  example: 'Thông tin không đầy đủ hoặc không hợp lệ',
-                  description: 'Lý do từ chối tài khoản'
-                }
-              }
-            }
-          }
-        }
-      },
-      responses: {
-        200: {
-          description: 'Từ chối thành công',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  message: { type: 'string', example: 'Từ chối tài khoản thành công' },
-                  user_id: { type: 'number', example: 5 },
-                  user_name: { type: 'string', example: 'Nguyễn Văn A' },
-                  user_email: { type: 'string', example: 'nguyenvana@example.com' },
-                  rejected_by: { type: 'string', example: 'admin@example.com' },
-                  rejected_date: { type: 'string', format: 'date-time' },
-                  rejection_reason: { type: 'string', example: 'Thông tin không đầy đủ hoặc không hợp lệ' }
-                }
-              }
-            }
-          }
-        },
-        400: { description: 'Thiếu lý do từ chối' },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_UPDATE' },
-        404: { description: 'Không tìm thấy người dùng' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  '/users/bulk-approve': {
-    post: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Bulk approve users (Admin only)',
-      description: 'Phê duyệt nhiều tài khoản cùng lúc - tối đa 50 tài khoản (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              required: ['user_ids'],
-              properties: {
-                user_ids: {
-                  type: 'array',
-                  items: {
-                    type: 'number'
-                  },
-                  example: [5, 6, 7, 8, 9],
-                  description: 'Danh sách user_id cần phê duyệt (tối đa 50)'
-                }
-              }
-            }
-          }
-        }
-      },
-      responses: {
-        200: {
-          description: 'Phê duyệt hàng loạt thành công',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  message: { type: 'string', example: 'Phê duyệt hàng loạt thành công' },
-                  total_requested: { type: 'number', example: 5, description: 'Tổng số tài khoản yêu cầu' },
-                  approved_count: { type: 'number', example: 4, description: 'Số tài khoản đã phê duyệt' },
-                  already_approved_count: { type: 'number', example: 1, description: 'Số tài khoản đã được duyệt trước đó' },
-                  approved_users: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        user_id: { type: 'number' },
-                        name: { type: 'string' },
-                        email: { type: 'string' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        400: { description: 'Dữ liệu không hợp lệ hoặc vượt quá 50 tài khoản' },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_UPDATE' },
-        404: { description: 'Không tìm thấy người dùng nào trong danh sách' },
-        500: { description: 'Lỗi server' }
-      }
-    }
-  },
-
-  '/users/{userId}/approval-history': {
-    get: {
-      tags: ['Account Approval (Admin)'],
-      summary: 'Get user approval history (Admin only)',
-      description: 'Xem lịch sử phê duyệt của người dùng (chỉ Admin)',
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: 'userId',
-          in: 'path',
-          required: true,
-          schema: {
-            type: 'number',
-            example: 5
-          },
-          description: 'ID người dùng'
-        }
-      ],
-      responses: {
-        200: {
-          description: 'Success',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  user_id: { type: 'number', example: 5 },
-                  name: { type: 'string', example: 'Nguyễn Văn A' },
-                  email: { type: 'string', example: 'nguyenvana@example.com' },
-                  current_status: { type: 'string', example: 'APPROVED', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
-                  created_by: { type: 'string', example: 'system' },
-                  created_date: { type: 'string', format: 'date-time' },
-                  approval_info: {
-                    type: 'object',
-                    nullable: true,
-                    properties: {
-                      status: { type: 'string', example: 'APPROVED' },
-                      processed_by: { type: 'string', example: 'admin@example.com' },
-                      processed_date: { type: 'string', format: 'date-time' },
-                      rejection_reason: { type: 'string', nullable: true }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        401: { description: 'Chưa đăng nhập' },
-        403: { description: 'Không có quyền USER_VIEW' },
         404: { description: 'Không tìm thấy người dùng' },
         500: { description: 'Lỗi server' }
       }
