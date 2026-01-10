@@ -17,7 +17,7 @@ async function sendResetPasswordEmail(email, resetToken, userName) {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
     const mailOptions = {
-      from: `"Vietsignschool" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM || `"Vietsignschool" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Yêu cầu đặt lại mật khẩu - Vietsignschool',
       html: `
