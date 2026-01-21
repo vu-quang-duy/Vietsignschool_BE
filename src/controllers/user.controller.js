@@ -1,4 +1,5 @@
 const db = require('../db');
+const services = require('../services/user.services');
 
 // GET user/profile
 
@@ -87,5 +88,174 @@ async function updateProfile(req, res){
 
 module.exports = { 
     getProfile,
-    updateProfile
- };
+    updateProfile,
+    createTeacher,
+    getTeachers,
+    getTeacherById,
+    updateTeacher,
+    deleteTeacher,
+    createStudent,
+    getStudents,
+    getStudentById,
+    updateStudent,
+    deleteStudent,
+    viewLesson,
+    viewVocabulary,
+    getStudentLearningProgress
+};
+
+// Student CRUD operations
+async function createStudent(req, res) {
+  try {
+    const payload = req.body || {};
+    const createdBy = req.user?.email || 'anonymousUser';
+    const result = await services.createStudent(payload, createdBy);
+    return res.status(201).json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getStudents(req, res) {
+  try {
+    const { page, limit, q, school_id } = req.query || {};
+    const data = await services.getStudents({ page, limit, q, school_id });
+    return res.json(data);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getStudentById(req, res) {
+  try {
+    const id = req.params.id;
+    const student = await services.getStudentById(id);
+    return res.json({ student });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function updateStudent(req, res) {
+  try {
+    const id = req.params.id;
+    const body = req.body || {};
+    const modifiedBy = req.user?.email || 'anonymousUser';
+    const updated = await services.updateStudent(id, body, modifiedBy);
+    return res.json({ message: 'Student updated successfully', student: updated });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function deleteStudent(req, res) {
+  try {
+    const id = req.params.id;
+    const modifiedBy = req.user?.email || 'anonymousUser';
+    const result = await services.deleteStudent(id, modifiedBy);
+    return res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+// Student learning tracking
+async function viewLesson(req, res) {
+  try {
+    const { lessonId } = req.body || {};
+    const studentId = req.user?.user_id;
+    const result = await services.viewLesson(studentId, lessonId);
+    return res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function viewVocabulary(req, res) {
+  try {
+    const { vocabularyId } = req.body || {};
+    const studentId = req.user?.user_id;
+    const result = await services.viewVocabulary(studentId, vocabularyId);
+    return res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getStudentLearningProgress(req, res) {
+  try {
+    const studentId = req.user?.user_id;
+    const result = await services.getStudentLearningProgress(studentId);
+    return res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+// Teacher CRUD operations
+async function createTeacher(req, res) {
+  try {
+    const payload = req.body || {};
+    const createdBy = req.user?.email || 'anonymousUser';
+    const result = await services.createTeacher(payload, createdBy);
+    return res.status(201).json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getTeachers(req, res) {
+  try {
+    const { page, limit, q, school_id } = req.query || {};
+    const data = await services.getTeachers({ page, limit, q, school_id });
+    return res.json(data);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function getTeacherById(req, res) {
+  try {
+    const id = req.params.id;
+    const teacher = await services.getTeacherById(id);
+    return res.json({ teacher });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function updateTeacher(req, res) {
+  try {
+    const id = req.params.id;
+    const body = req.body || {};
+    const modifiedBy = req.user?.email || 'anonymousUser';
+    const updated = await services.updateTeacher(id, body, modifiedBy);
+    return res.json({ message: 'Teacher updated successfully', teacher: updated });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
+
+async function deleteTeacher(req, res) {
+  try {
+    const id = req.params.id;
+    const modifiedBy = req.user?.email || 'anonymousUser';
+    const result = await services.deleteTeacher(id, modifiedBy);
+    return res.json(result);
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message });
+  }
+}
