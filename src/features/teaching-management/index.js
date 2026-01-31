@@ -14,6 +14,7 @@ const topicRoutes = require('./routes/topic.routes');
 const questionRoutes = require('./routes/question.routes');
 const examRoutes = require('./routes/exam.routes');
 const progressRoutes = require('./routes/progress.routes');
+const classLearningRoutes = require('./routes/class-learning.routes');
 
 // Mount all routes
 router.use('/classrooms', classroomRoutes);
@@ -23,5 +24,6 @@ router.use('/topics', topicRoutes);
 router.use('/questions', questionRoutes);
 router.use('/exams', examRoutes);
 router.use('/progress', progressRoutes);
+router.use('/class-learning', classLearningRoutes);
 
 module.exports = router;
