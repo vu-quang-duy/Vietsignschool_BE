@@ -23,7 +23,7 @@ async function joinClassByCode(userId, classCode) {
 
   // Tìm lớp theo mã
   const [classrooms] = await db.query(
-    `SELECT class_room_id, class_room_name, class_level, is_active
+    `SELECT class_room_id, content, class_level, is_active
      FROM class_room
      WHERE class_code = ? AND is_active = 1
      LIMIT 1`,
@@ -75,7 +75,7 @@ async function joinClassByCode(userId, classCode) {
     message: 'Tham gia lớp thành công',
     classroom: {
       classRoomId: classroom.class_room_id,
-      name: classroom.class_room_name,
+      name: classroom.content,
       classLevel: classroom.class_level,
     }
   };
@@ -116,7 +116,7 @@ async function getMyClasses(userId, { page = 1, limit = 20 } = {}) {
   const [rows] = await db.query(
     `SELECT
       c.class_room_id,
-      c.class_room_name AS name,
+      c.content AS name,
       c.description,
       c.class_level,
       c.class_code,
@@ -162,6 +162,7 @@ async function getMyClasses(userId, { page = 1, limit = 20 } = {}) {
 
 /**
  * Lấy danh sách bài học theo lớp
+ * Sử dụng part_view để tính tiến độ (không có lesson_view trong schema)
  */
 async function getLessonsByClass(classRoomId, userId) {
   // Kiểm tra học sinh có trong lớp không
@@ -175,18 +176,33 @@ async function getLessonsByClass(classRoomId, userId) {
       l.image_location,
       l.video_location,
       l.order_index,
-      COALESCE(lv.view_count, 0) AS view_count,
-      COALESCE(lv.completed, 0) AS completed,
-      COALESCE(lv.progress_percent, 0) AS progress_percent,
-      lv.last_viewed_at
+      (SELECT COUNT(*) FROM part WHERE lesson_id = l.lesson_id) AS total_parts,
+      (SELECT COUNT(*) FROM part_view pv
+       JOIN part p ON pv.part_id = p.part_id
+       WHERE p.lesson_id = l.lesson_id AND pv.user_id = ?) AS viewed_parts,
+      (SELECT COUNT(*) FROM part_view pv
+       JOIN part p ON pv.part_id = p.part_id
+       WHERE p.lesson_id = l.lesson_id AND pv.user_id = ? AND pv.completed = 1) AS completed_parts,
+      (SELECT MAX(pv.last_viewed_at) FROM part_view pv
+       JOIN part p ON pv.part_id = p.part_id
+       WHERE p.lesson_id = l.lesson_id AND pv.user_id = ?) AS last_viewed_at
     FROM lesson l
-    LEFT JOIN lesson_view lv ON l.lesson_id = lv.lesson_id AND lv.user_id = ?
     WHERE l.class_room_id = ?
     ORDER BY l.order_index ASC, l.lesson_id ASC`,
-    [userId, classRoomId]
+    [userId, userId, userId, classRoomId]
   );
 
-  return { lessons };
+  // Tính progress_percent dựa trên số parts hoàn thành
+  const lessonsWithProgress = lessons.map(lesson => ({
+    ...lesson,
+    view_count: lesson.viewed_parts,
+    completed: lesson.total_parts > 0 && lesson.completed_parts >= lesson.total_parts ? 1 : 0,
+    progress_percent: lesson.total_parts > 0
+      ? Math.round((lesson.completed_parts / lesson.total_parts) * 100)
+      : 0
+  }));
+
+  return { lessons: lessonsWithProgress };
 }
 
 /**
@@ -202,7 +218,7 @@ async function getLessonDetail(lessonId, userId) {
       l.image_location,
       l.video_location,
       l.order_index,
-      c.class_room_name,
+      c.content AS class_room_name,
       c.class_level
     FROM lesson l
     JOIN class_room c ON l.class_room_id = c.class_room_id
@@ -222,11 +238,18 @@ async function getLessonDetail(lessonId, userId) {
   await verifyStudentInClass(userId, lesson.class_room_id);
 
   // Lấy các phần trong bài học (bảng part, không phải lesson_part)
+  // part_image và part_video là bảng riêng
   const [parts] = await db.query(
-    `SELECT part_id, part_name, description, video_location, order_index
-     FROM part
-     WHERE lesson_id = ?
-     ORDER BY order_index ASC`,
+    `SELECT
+      p.part_id,
+      p.part_name,
+      p.description,
+      p.order_index,
+      (SELECT GROUP_CONCAT(pi.image_location) FROM part_image pi WHERE pi.part_id = p.part_id) AS images,
+      (SELECT GROUP_CONCAT(pv.video_location) FROM part_video pv WHERE pv.part_id = p.part_id) AS videos
+     FROM part p
+     WHERE p.lesson_id = ?
+     ORDER BY p.order_index ASC`,
     [lessonId]
   );
 
@@ -241,8 +264,10 @@ async function getLessonDetail(lessonId, userId) {
     [lessonId]
   );
 
-  // Ghi nhận xem bài học
-  await recordLessonView(userId, lessonId);
+  // Ghi nhận xem các part trong bài học (sử dụng part_view)
+  for (const part of parts) {
+    await recordPartView(userId, part.part_id, lessonId);
+  }
 
   return {
     lesson: {
@@ -346,7 +371,7 @@ async function getVocabularyDetail(vocabularyId, userId) {
     `SELECT
       v.*,
       t.content AS topic_name,
-      c.class_room_name
+      c.content AS class_room_name
     FROM vocabulary v
     LEFT JOIN topic t ON v.topic_id = t.topic_id
     LEFT JOIN class_room c ON v.class_room_id = c.class_room_id
@@ -372,18 +397,40 @@ async function getVocabularyDetail(vocabularyId, userId) {
 
 /**
  * Lấy tiến độ học tập theo lớp
+ * Sử dụng part_view thay vì lesson_view (theo schema vietsignschool.sql)
  */
 async function getClassProgress(userId, classRoomId) {
   await verifyStudentInClass(userId, classRoomId);
 
-  // Thống kê bài học
+  // Thống kê bài học (tính lesson completed dựa trên parts completed)
   const [[lessonStats]] = await db.query(
     `SELECT
       COUNT(*) AS total_lessons,
-      (SELECT COUNT(*) FROM lesson_view lv
-       JOIN lesson l ON lv.lesson_id = l.lesson_id
-       WHERE lv.user_id = ? AND l.class_room_id = ? AND lv.completed = 1) AS completed_lessons
+      (SELECT COUNT(DISTINCT l2.lesson_id) FROM lesson l2
+       WHERE l2.class_room_id = ?
+       AND NOT EXISTS (
+         SELECT 1 FROM part p WHERE p.lesson_id = l2.lesson_id
+         AND NOT EXISTS (
+           SELECT 1 FROM part_view pv WHERE pv.part_id = p.part_id AND pv.user_id = ? AND pv.completed = 1
+         )
+       )
+       AND EXISTS (SELECT 1 FROM part p2 WHERE p2.lesson_id = l2.lesson_id)
+      ) AS completed_lessons
     FROM lesson WHERE class_room_id = ?`,
+    [classRoomId, userId, classRoomId]
+  );
+
+  // Thống kê parts
+  const [[partStats]] = await db.query(
+    `SELECT
+      COUNT(*) AS total_parts,
+      (SELECT COUNT(*) FROM part_view pv
+       JOIN part p ON pv.part_id = p.part_id
+       JOIN lesson l ON p.lesson_id = l.lesson_id
+       WHERE pv.user_id = ? AND l.class_room_id = ? AND pv.completed = 1) AS completed_parts
+    FROM part p
+    JOIN lesson l ON p.lesson_id = l.lesson_id
+    WHERE l.class_room_id = ?`,
     [userId, classRoomId, classRoomId]
   );
 
@@ -398,17 +445,33 @@ async function getClassProgress(userId, classRoomId) {
     [userId, classRoomId, classRoomId]
   );
 
-  // Bài học gần đây
+  // Bài học gần đây (dựa trên part_view)
   const [recentLessons] = await db.query(
     `SELECT
-      l.lesson_id, l.lesson_name, lv.progress_percent, lv.last_viewed_at
-    FROM lesson_view lv
-    JOIN lesson l ON lv.lesson_id = l.lesson_id
-    WHERE lv.user_id = ? AND l.class_room_id = ?
-    ORDER BY lv.last_viewed_at DESC
+      l.lesson_id,
+      l.lesson_name,
+      (SELECT COUNT(*) FROM part WHERE lesson_id = l.lesson_id) AS total_parts,
+      (SELECT COUNT(*) FROM part_view pv JOIN part p ON pv.part_id = p.part_id
+       WHERE p.lesson_id = l.lesson_id AND pv.user_id = ? AND pv.completed = 1) AS completed_parts,
+      (SELECT MAX(pv.last_viewed_at) FROM part_view pv JOIN part p ON pv.part_id = p.part_id
+       WHERE p.lesson_id = l.lesson_id AND pv.user_id = ?) AS last_viewed_at
+    FROM lesson l
+    WHERE l.class_room_id = ?
+    AND EXISTS (SELECT 1 FROM part_view pv JOIN part p ON pv.part_id = p.part_id WHERE p.lesson_id = l.lesson_id AND pv.user_id = ?)
+    ORDER BY last_viewed_at DESC
     LIMIT 5`,
-    [userId, classRoomId]
+    [userId, userId, classRoomId, userId]
   );
+
+  // Tính progress_percent cho mỗi bài học
+  const recentLessonsWithProgress = recentLessons.map(lesson => ({
+    lesson_id: lesson.lesson_id,
+    lesson_name: lesson.lesson_name,
+    progress_percent: lesson.total_parts > 0
+      ? Math.round((lesson.completed_parts / lesson.total_parts) * 100)
+      : 0,
+    last_viewed_at: lesson.last_viewed_at
+  }));
 
   // Từ vựng gần đây
   const [recentVocabs] = await db.query(
@@ -426,6 +489,8 @@ async function getClassProgress(userId, classRoomId) {
   await updateLearningProgress(userId, classRoomId, {
     totalLessons: lessonStats.total_lessons,
     completedLessons: lessonStats.completed_lessons,
+    totalParts: partStats.total_parts,
+    completedParts: partStats.completed_parts,
     totalVocabularies: vocabStats.total_vocabularies,
     learnedVocabularies: vocabStats.learned_vocabularies,
   });
@@ -439,6 +504,13 @@ async function getClassProgress(userId, classRoomId) {
           ? Math.round((lessonStats.completed_lessons / lessonStats.total_lessons) * 100)
           : 0
       },
+      parts: {
+        total: partStats.total_parts || 0,
+        completed: partStats.completed_parts || 0,
+        percent: partStats.total_parts > 0
+          ? Math.round((partStats.completed_parts / partStats.total_parts) * 100)
+          : 0
+      },
       vocabularies: {
         total: vocabStats.total_vocabularies || 0,
         learned: vocabStats.learned_vocabularies || 0,
@@ -447,13 +519,14 @@ async function getClassProgress(userId, classRoomId) {
           : 0
       }
     },
-    recentLessons,
+    recentLessons: recentLessonsWithProgress,
     recentVocabularies: recentVocabs
   };
 }
 
 /**
  * Đánh dấu hoàn thành bài học
+ * Đánh dấu tất cả parts trong lesson là completed
  */
 async function markLessonComplete(userId, lessonId) {
   const [lessons] = await db.query(
@@ -469,12 +542,22 @@ async function markLessonComplete(userId, lessonId) {
 
   await verifyStudentInClass(userId, lessons[0].class_room_id);
 
-  await db.query(
-    `UPDATE lesson_view
-     SET completed = 1, progress_percent = 100, last_viewed_at = NOW()
-     WHERE user_id = ? AND lesson_id = ?`,
-    [userId, lessonId]
+  // Lấy tất cả parts trong lesson
+  const [parts] = await db.query(
+    `SELECT part_id FROM part WHERE lesson_id = ?`,
+    [lessonId]
   );
+
+  // Đánh dấu tất cả parts là completed
+  for (const part of parts) {
+    await db.query(
+      `INSERT INTO part_view (user_id, part_id, lesson_id, view_count, completed, progress_percent, last_viewed_at, created_date)
+       VALUES (?, ?, ?, 1, 1, 100, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE
+       completed = 1, progress_percent = 100, last_viewed_at = NOW()`,
+      [userId, part.part_id, lessonId]
+    );
+  }
 
   return { message: 'Đã đánh dấu hoàn thành bài học' };
 }
@@ -506,9 +589,16 @@ async function verifyStudentInClass(userId, classRoomId) {
  * Khởi tạo tiến độ học tập
  */
 async function initLearningProgress(userId, classRoomId) {
-  // Đếm tổng bài học và từ vựng
+  // Đếm tổng bài học, parts và từ vựng
   const [[lessonCount]] = await db.query(
     `SELECT COUNT(*) as count FROM lesson WHERE class_room_id = ?`,
+    [classRoomId]
+  );
+
+  const [[partCount]] = await db.query(
+    `SELECT COUNT(*) as count FROM part p
+     JOIN lesson l ON p.lesson_id = l.lesson_id
+     WHERE l.class_room_id = ?`,
     [classRoomId]
   );
 
@@ -519,13 +609,14 @@ async function initLearningProgress(userId, classRoomId) {
 
   await db.query(
     `INSERT INTO class_learning_progress
-     (user_id, class_room_id, total_lessons, total_vocabularies, last_activity_at)
-     VALUES (?, ?, ?, ?, NOW())
+     (user_id, class_room_id, total_lessons, total_parts, total_vocabularies, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE
      total_lessons = VALUES(total_lessons),
+     total_parts = VALUES(total_parts),
      total_vocabularies = VALUES(total_vocabularies),
      last_activity_at = NOW()`,
-    [userId, classRoomId, lessonCount.count, vocabCount.count]
+    [userId, classRoomId, lessonCount.count, partCount.count, vocabCount.count]
   );
 }
 
@@ -537,6 +628,8 @@ async function updateLearningProgress(userId, classRoomId, stats) {
     `UPDATE class_learning_progress SET
      total_lessons = ?,
      completed_lessons = ?,
+     total_parts = ?,
+     completed_parts = ?,
      total_vocabularies = ?,
      learned_vocabularies = ?,
      last_activity_at = NOW()
@@ -544,6 +637,8 @@ async function updateLearningProgress(userId, classRoomId, stats) {
     [
       stats.totalLessons,
       stats.completedLessons,
+      stats.totalParts || 0,
+      stats.completedParts || 0,
       stats.totalVocabularies,
       stats.learnedVocabularies,
       userId,
@@ -553,25 +648,25 @@ async function updateLearningProgress(userId, classRoomId, stats) {
 }
 
 /**
- * Ghi nhận xem bài học
+ * Ghi nhận xem part (sử dụng part_view thay vì lesson_view)
  */
-async function recordLessonView(userId, lessonId) {
+async function recordPartView(userId, partId, lessonId) {
   const [existing] = await db.query(
-    `SELECT lesson_view_id FROM lesson_view WHERE user_id = ? AND lesson_id = ?`,
-    [userId, lessonId]
+    `SELECT part_view_id FROM part_view WHERE user_id = ? AND part_id = ?`,
+    [userId, partId]
   );
 
   if (existing.length === 0) {
     await db.query(
-      `INSERT INTO lesson_view (user_id, lesson_id, view_count, last_viewed_at, created_date)
-       VALUES (?, ?, 1, NOW(), NOW())`,
-      [userId, lessonId]
+      `INSERT INTO part_view (user_id, part_id, lesson_id, view_count, last_viewed_at, created_date)
+       VALUES (?, ?, ?, 1, NOW(), NOW())`,
+      [userId, partId, lessonId]
     );
   } else {
     await db.query(
-      `UPDATE lesson_view SET view_count = view_count + 1, last_viewed_at = NOW()
-       WHERE user_id = ? AND lesson_id = ?`,
-      [userId, lessonId]
+      `UPDATE part_view SET view_count = view_count + 1, last_viewed_at = NOW()
+       WHERE user_id = ? AND part_id = ?`,
+      [userId, partId]
     );
   }
 }

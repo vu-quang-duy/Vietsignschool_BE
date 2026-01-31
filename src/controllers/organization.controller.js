@@ -41,6 +41,7 @@ async function createOrganization(req, res) {
         const {
             parent_id,
             name,
+            description,
             type, // 'EDU_SYSTEM','CENTER','SCHOOL','DEPARTMENT','FACILITY
             address,
             city,
@@ -70,11 +71,12 @@ async function createOrganization(req, res) {
 
     await db.query(
         `INSERT INTO organization
-        (parent_id, name, slug, type, address, city, ward, street, phone, email, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (parent_id, name, description, slug, type, address, city, ward, street, phone, email, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             parent_id || null,
             name,
+            description || null,
             slug,
             type,
             address || null,
@@ -115,6 +117,7 @@ async function updateOrganization(req, res) {
         };
 
         const name = pick('name', ['organization_name', 'org_name']);
+        const description = pick('description');
         const address = pick('address');
         const phone = pick('phone', ['phone_number']);
         const email = pick('email');
@@ -127,6 +130,11 @@ async function updateOrganization(req, res) {
             const nextSlug = name ? slugify(String(name), { lower: true, strict: true }) : null;
             updates.push('slug = ?');
             values.push(nextSlug);
+        }
+
+        if (description !== undefined) {
+            updates.push('description = ?');
+            values.push(description);
         }
 
         if (address !== undefined) {
@@ -152,7 +160,7 @@ async function updateOrganization(req, res) {
         if (updates.length === 0) {
             return res.status(400).json({
                 message: 'No updatable fields provided',
-                allowedFields: ['name', 'address', 'phone', 'email', 'status'],
+                allowedFields: ['name', 'description', 'address', 'phone', 'email', 'status'],
                 receivedKeys: Object.keys(rawBody || {}),
                 receivedOrganizationKeys: body !== rawBody ? Object.keys(body || {}) : undefined,
                 hint: 'Make sure you send JSON with Content-Type: application/json',
