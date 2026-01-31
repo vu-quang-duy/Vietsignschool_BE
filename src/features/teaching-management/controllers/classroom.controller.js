@@ -1,4 +1,4 @@
-const classroomServices = require('../services/classroom.services');
+const classroomServices = require("../services/classroom.services");
 
 /**
  * Controller layer for classroom management.
@@ -7,7 +7,10 @@ const classroomServices = require('../services/classroom.services');
 
 async function createClassroom(req, res) {
   try {
-    const classroom = await classroomServices.createClassroom(req.body, req.user?.user_id);
+    const classroom = await classroomServices.createClassroom(
+      req.body,
+      req.user?.user_id,
+    );
     return res.status(201).json(classroom);
   } catch (err) {
     const statusCode = err.status || 500;
@@ -27,7 +30,9 @@ async function getClassrooms(req, res) {
 
 async function getClassroomById(req, res) {
   try {
-    const classroom = await classroomServices.getClassroomById(req.params.classroomId);
+    const classroom = await classroomServices.getClassroomById(
+      req.params.classroomId,
+    );
     return res.status(200).json(classroom);
   } catch (err) {
     const statusCode = err.status || 500;
@@ -40,7 +45,7 @@ async function updateClassroom(req, res) {
     const classroom = await classroomServices.updateClassroom(
       req.params.classroomId,
       req.body,
-      req.user?.user_id
+      req.user?.user_id,
     );
     return res.status(200).json(classroom);
   } catch (err) {
@@ -51,7 +56,10 @@ async function updateClassroom(req, res) {
 
 async function deleteClassroom(req, res) {
   try {
-    const result = await classroomServices.deleteClassroom(req.params.classroomId, req.user?.user_id);
+    const result = await classroomServices.deleteClassroom(
+      req.params.classroomId,
+      req.user?.user_id,
+    );
     return res.status(200).json(result);
   } catch (err) {
     const statusCode = err.status || 500;
@@ -64,7 +72,7 @@ async function addStudentToClassroom(req, res) {
     const result = await classroomServices.addStudentToClassroom(
       req.params.classroomId,
       req.body.studentId,
-      req.user?.user_id
+      req.user?.user_id,
     );
     return res.status(201).json(result);
   } catch (err) {
@@ -78,7 +86,7 @@ async function removeStudentFromClassroom(req, res) {
     const result = await classroomServices.removeStudentFromClassroom(
       req.params.classroomId,
       req.body.studentId,
-      req.user?.user_id
+      req.user?.user_id,
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -91,7 +99,7 @@ async function getClassroomStudents(req, res) {
   try {
     const result = await classroomServices.getClassroomStudents(
       req.params.classroomId,
-      req.query
+      req.query,
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -108,5 +116,5 @@ module.exports = {
   deleteClassroom,
   addStudentToClassroom,
   removeStudentFromClassroom,
-  getClassroomStudents
+  getClassroomStudents,
 };

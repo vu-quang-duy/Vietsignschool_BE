@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
@@ -27,15 +27,21 @@ app.use("/organization-managers", organizationManagerRoutes);
 app.use("/teaching-management", teachingManagementRoutes);
 
 //router login
-app.get("/me",authRequired, (req, res) => {
-    return res.json({
-        message: "This is protected data.",
-        user: req.user
-    });
+app.get("/me", authRequired, (req, res) => {
+  return res.json({
+    message: "This is protected data.",
+    user: req.user,
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, async () => {
+  console.log(`Server is running on port ${PORT}`);
+  try {
+    const db = require("./db");
+    const [rows] = await db.query("DESCRIBE `user`");
+  } catch (err) {
+    console.error("DEBUG TABLE ERROR:", err);
+  }
 });
