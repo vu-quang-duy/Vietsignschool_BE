@@ -1,0 +1,29 @@
+version: '3.6'
+
+# ==========================================
+# Docker Compose - Kết nối MySQL Remote
+# ==========================================
+# Chạy: docker-compose -f docker-compose-remote.yml up --build
+# Dừng: docker-compose -f docker-compose-remote.yml down
+# ==========================================
+
+networks:
+  vietsign-network:
+    driver: bridge
+
+services:
+  # ==========================================
+  # Backend API Service (MySQL Remote)
+  # ==========================================
+  app:
+    container_name: vietsign-app-container-${NODE_ENV:-dev}
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:${PORT:-5000}"
+    networks:
+      - vietsign-network
